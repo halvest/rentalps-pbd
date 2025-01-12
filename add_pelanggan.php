@@ -1,3 +1,6 @@
+<?php include 'config/db.php'; ?>
+<?php include 'navbar.php'; ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,32 +10,42 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-<?php include 'config/db.php'; ?>
-<?php include 'navbar.php'; ?>
-
 <div class="container mt-4">
     <div class="card">
         <div class="card-header bg-primary text-white">Tambah Pelanggan Baru</div>
         <div class="card-body">
             <?php
             if ($_SERVER["REQUEST_METHOD"] == "POST") {
-                $nama = $conn->real_escape_string($_POST['nama']);
-                $alamat = $conn->real_escape_string($_POST['alamat']);
-                $email = $conn->real_escape_string($_POST['email']);
-                $no_telepon = $conn->real_escape_string($_POST['no_telepon']);
+                $nama = trim($_POST['nama']);
+                $alamat = trim($_POST['alamat']);
+                $email = trim($_POST['email']);
+                $no_telepon = trim($_POST['no_telepon']);
 
                 // Validasi data
                 if (empty($nama) || empty($alamat) || empty($email) || empty($no_telepon)) {
                     echo '<div class="alert alert-danger">Semua field wajib diisi!</div>';
                 } else if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     echo '<div class="alert alert-danger">Email tidak valid!</div>';
+                } else if (!preg_match('/^\d+$/', $no_telepon)) {
+                    echo '<div class="alert alert-danger">No telepon hanya boleh berisi angka!</div>';
                 } else {
-                    // Query untuk menyimpan data
-                    $sql = "INSERT INTO Pelanggan (nama, alamat, email, no_telepon) VALUES ('$nama', '$alamat', '$email', '$no_telepon')";
-                    if ($conn->query($sql) === TRUE) {
-                        echo '<div class="alert alert-success">Pelanggan berhasil ditambahkan!</div>';
+                    // Cek apakah email sudah ada
+                    $stmt = $conn->prepare("SELECT * FROM Pelanggan WHERE email = ?");
+                    $stmt->bind_param("s", $email);
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+
+                    if ($result->num_rows > 0) {
+                        echo '<div class="alert alert-danger">Email sudah terdaftar!</div>';
                     } else {
-                        echo '<div class="alert alert-danger">Error: ' . $conn->error . '</div>';
+                        // Simpan data
+                        $stmt = $conn->prepare("INSERT INTO Pelanggan (nama, alamat, email, no_telepon) VALUES (?, ?, ?, ?)");
+                        $stmt->bind_param("ssss", $nama, $alamat, $email, $no_telepon);
+                        if ($stmt->execute()) {
+                            echo '<div class="alert alert-success">Pelanggan berhasil ditambahkan!</div>';
+                        } else {
+                            echo '<div class="alert alert-danger">Error: ' . $conn->error . '</div>';
+                        }
                     }
                 }
             }
@@ -62,7 +75,6 @@
         </div>
     </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 $host = 'localhost';
 $username = 'root';
 $password = '';
-$dbname = 'Rental_PS';
+$dbname = 'RentalPS';
 
 $conn = new mysqli($host, $username, $password, $dbname);
 
